@@ -43,8 +43,8 @@ je account, zet dan in **Authentication → Sign In / Providers → Email** de o
    Kies **Public** — GitHub Pages is enkel gratis op publieke repositories.
    Publiek betekent: de code van de app is zichtbaar, je uren niet. Die staan
    in Supabase achter je aanmelding.
-2. *Add file → Upload files*. Sleep **alle** bestanden hierin, inclusief de
-   mappen `icons/` en `vendor/`. Commit.
+2. *Add file → Upload files*. Klik *choose your files*, selecteer met Ctrl+A **alle** bestanden en commit.
+   Deze versie heeft geen submappen, dus alles gaat in één keer mee.
 3. *Settings → Pages* → Source: **Deploy from a branch** → branch `main`,
    map `/ (root)` → **Save**.
 4. Na ongeveer een minuut staat je app op
@@ -100,8 +100,8 @@ hem één keer sluiten en heropenen voor je de wijziging ziet.
 | `config.js` | **Jouw** twee Supabase-gegevens |
 | `sw.js` | Service worker — zorgt dat de app offline werkt |
 | `manifest.webmanifest` | Maakt er een installeerbare app van |
-| `vendor/supabase.js` | De Supabase-bibliotheek, meegeleverd zodat je offline niets nodig hebt |
-| `icons/` | App-icoon in de nodige maten |
+| `supabase.js` | De Supabase-bibliotheek, meegeleverd zodat je offline niets nodig hebt |
+| `icon-*.png`, `apple-touch-icon.png`, `favicon-*.png` | App-icoon in de nodige maten |
 | `supabase-setup.sql` | Het script uit stap 1.4 |
 
 ---

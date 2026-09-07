@@ -215,7 +215,8 @@
   function zetSync(stand,fout){
     syncStand=stand; syncFout=fout||"";
     var stip=document.getElementById("syncStip"), tekst=document.getElementById("syncTekst");
-    stip.className="syncstip "+(stand==="ok"?"ok":stand==="bezig"?"bezig":stand==="fout"?"fout":"uit");
+    stip.className="syncstip "+(stand==="ok"?"ok":stand==="bezig"?"bezig":
+                    (stand==="fout"||stand==="bibliotheek")?"fout":"uit");
     var n=aantalVuil();
     if(stand==="ok"){
       var t=laatsteSync?(pad(laatsteSync.getHours())+":"+pad(laatsteSync.getMinutes())):"";
@@ -223,6 +224,7 @@
     }else if(stand==="bezig") tekst.textContent="Synchroniseren…";
     else if(stand==="fout") tekst.textContent="Niet gesynchroniseerd"+(n?" · "+n+" wijziging"+(n===1?"":"en")+" wacht":"");
     else if(stand==="aanmelden") tekst.textContent="Nog niet aangemeld — tik op Synchronisatie";
+    else if(stand==="bibliotheek") tekst.textContent="Synchronisatie kan niet starten — tik op Synchronisatie";
     else tekst.textContent="Alleen op dit toestel bewaard";
   }
 
@@ -235,8 +237,11 @@
     }catch(e){ SB=null; return false; }
   }
 
+  function bibliotheekAanwezig(){ return !!(window.supabase && window.supabase.createClient); }
+  function zorgVoorClient(){ if(!SB) maakClient(); return !!SB; }
+
   async function startSync(){
-    if(!maakClient()){ zetSync("uit"); return; }
+    if(!maakClient()){ zetSync(configOk()&&!bibliotheekAanwezig() ? "bibliotheek" : "uit"); return; }
     try{
       var r=await SB.auth.getSession();
       sessie=(r&&r.data&&r.data.session)||null;
@@ -681,6 +686,27 @@
       overlay.hidden=false; return;
     }
 
+    if(!zorgVoorClient()){
+      var pb=document.createElement("p"); pb.className="foutlijn";
+      pb.textContent = bibliotheekAanwezig()
+        ? "De verbinding met Supabase kon niet opgezet worden. Controleer of de project-URL klopt en met https:// begint."
+        : "Het bestand vendor/supabase.js is niet geladen. Meestal betekent dit dat de map vendor niet mee geüpload is; "+
+          "voeg die alsnog toe naast index.html en herlaad de pagina.";
+      wrap.appendChild(pb);
+      var pu=document.createElement("p"); pu.className="hint";
+      pu.textContent="Je uren blijven ondertussen gewoon op dit toestel bewaard — er gaat niets verloren.";
+      wrap.appendChild(pu);
+      wrap.appendChild(kaartVoet(
+        knop("Andere server","stil",function(){
+          try{ localStorage.removeItem(LS_C); }catch(e){}
+          SB=null; sessie=null; zetSync("uit"); openAccount();
+        }),
+        [knop("Sluiten","stil",sluit),
+         knop("Opnieuw proberen","opslaan",function(){ sluit(); startSync().then(function(){ openAccount(); }); })]
+      ));
+      overlay.hidden=false; return;
+    }
+
     if(!sessie){
       var p2=document.createElement("p"); p2.className="hint";
       p2.textContent="Meld je aan met hetzelfde adres op je gsm en je pc; dan lopen je uren gelijk.";
@@ -692,6 +718,11 @@
 
       async function poging(nieuw){
         fout.hidden=true;
+        if(!zorgVoorClient()){
+          fout.className="foutlijn";
+          fout.textContent="Synchronisatie is nog niet klaar. Sluit dit venster en probeer opnieuw.";
+          fout.hidden=false; return;
+        }
         var mail=fE.input.value.trim(), ww=fW.input.value;
         if(!mail||!ww){ fout.textContent="Vul je e-mailadres en wachtwoord in."; fout.hidden=false; return; }
         try{

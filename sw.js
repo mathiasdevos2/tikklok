@@ -1,12 +1,12 @@
 /* Service worker: houdt de app offline beschikbaar.
    Alleen bestanden van de app zelf worden gecachet; oproepen naar
    Supabase gaan altijd rechtstreeks naar het netwerk. */
-var VERSIE = "tikklok-v2";
+var VERSIE = "tikklok-plat-v1";
 var SCHIL = [
-  "./", "./index.html", "./app.js", "./config.js", "./vendor/supabase.js",
+  "./", "./index.html", "./app.js", "./config.js", "./supabase.js",
   "./manifest.webmanifest",
-  "./icons/icon-192.png", "./icons/icon-512.png", "./icons/maskable-512.png",
-  "./icons/apple-touch-icon.png", "./icons/favicon-32.png", "./icons/favicon-64.png"
+  "./icon-192.png", "./icon-512.png", "./maskable-512.png",
+  "./apple-touch-icon.png", "./favicon-32.png", "./favicon-64.png"
 ];
 
 self.addEventListener("install", function(e){
