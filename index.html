@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tikklok</title>
+<meta name="description" content="Persoonlijke urenregistratie: in- en uitklokken, pauzes, verlof en saldo.">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#101614">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Tikklok">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="64x64" href="icons/favicon-64.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Sans+3:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+  :root{
+    --bg:#EEF1EF; --surface:#FFFFFF; --surface-2:#F6F9F7; --surface-3:#E9EEEB;
+    --line:#D6DCD7; --line-strong:#BAC4BD;
+    --text:#141A17; --muted:#5E6A63;
+    --accent:#0B6E4F; --accent-soft:#E1F0E9; --accent-text:#0B6E4F;
+    --warn:#8E5300; --warn-soft:#F8EBD8;
+    --neg:#98202F; --neg-soft:#F7E3E5;
+    --info:#2A5470; --info-soft:#E3EDF3;
+    --violet:#553D7A; --violet-soft:#EBE6F3;
+    --panel:#101614; --panel-2:#1A2320; --panel-line:#2B3733;
+    --panel-text:#E8EFEB; --panel-muted:#8B9C94; --led:#6FE3B0; --led-idle:#5E6E68;
+    --amber:#E2A85C;
+    --f-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+    --f-body:"Source Sans 3","Segoe UI",system-ui,sans-serif;
+    --f-mono:"JetBrains Mono","SFMono-Regular",Consolas,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0D1211; --surface:#161D1A; --surface-2:#1B2421; --surface-3:#222C28;
+      --line:#293330; --line-strong:#3A4641;
+      --text:#E7EEEA; --muted:#97A69E;
+      --accent:#43C295; --accent-soft:#123028; --accent-text:#57D3A6;
+      --warn:#E0A65E; --warn-soft:#2E2415;
+      --neg:#EE8894; --neg-soft:#331A1E;
+      --info:#8FBAD6; --info-soft:#16262F;
+      --violet:#B8A2DE; --violet-soft:#221C30;
+    }
+  }
+
+  *{box-sizing:border-box}
+  [hidden]{display:none!important}
+  html{background:var(--bg)}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--f-body);font-size:16px;line-height:1.5;
+       -webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%}
+  .wrap{max-width:1080px;margin:0 auto;
+        padding:calc(20px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right))
+                calc(72px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));
+        display:flex;flex-direction:column;gap:18px}
+
+  header.kop{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;
+             border-bottom:1px solid var(--line);padding-bottom:14px}
+  .merk h1{font-family:var(--f-display);font-weight:700;font-size:1.6rem;letter-spacing:-.01em;margin:0}
+  .synclijn{margin:3px 0 0;color:var(--muted);font-size:.88rem;display:flex;align-items:center;gap:7px}
+  .syncstip{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
+  .syncstip.ok{background:var(--accent)} .syncstip.uit{background:var(--line-strong)}
+  .syncstip.fout{background:var(--neg)} .syncstip.bezig{background:var(--amber)}
+  .kop-acties{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+  button{font:inherit;cursor:pointer;border-radius:9px;border:1px solid var(--line-strong);
+         background:var(--surface);color:var(--text);padding:8px 13px;min-height:40px;
+         transition:background .15s,border-color .15s}
+  button:hover{background:var(--surface-3)}
+  button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .stil{border-color:transparent;background:transparent;color:var(--muted)}
+  .stil:hover{background:var(--surface-3);color:var(--text)}
+
+  .boven{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:16px;align-items:start}
+  @media (max-width:880px){.boven{grid-template-columns:1fr}}
+
+  .klok{background:var(--panel);border:1px solid var(--panel-line);border-radius:16px;padding:20px 22px;
+        color:var(--panel-text);display:flex;flex-direction:column;gap:14px}
+  .klok .rij1{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+  .eyebrow{font-family:var(--f-display);font-size:.7rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+           color:var(--panel-muted)}
+  .datumlabel{font-size:.95rem;color:var(--panel-muted)}
+  .digits{font-family:var(--f-mono);font-weight:700;font-size:clamp(2.8rem,11vw,4.1rem);line-height:1;
+          letter-spacing:.02em;color:var(--led-idle);font-variant-numeric:tabular-nums;transition:color .3s}
+  .digits.loopt{color:var(--led)}
+  .subdigits{font-family:var(--f-mono);font-size:.86rem;color:var(--panel-muted);margin-top:6px;
+             font-variant-numeric:tabular-nums}
+  .status{display:inline-flex;align-items:center;gap:8px;font-size:.9rem;color:var(--panel-muted)}
+  .stip{width:9px;height:9px;border-radius:50%;background:var(--led-idle);flex:none}
+  .stip.loopt{background:var(--led);box-shadow:0 0 0 4px rgba(111,227,176,.16)}
+  @media (prefers-reduced-motion: no-preference){
+    .stip.loopt{animation:pols 2.4s ease-in-out infinite}
+    @keyframes pols{0%,100%{box-shadow:0 0 0 4px rgba(111,227,176,.16)}50%{box-shadow:0 0 0 7px rgba(111,227,176,.06)}}
+  }
+  .knoprij{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+  .prim{font-family:var(--f-display);font-weight:600;font-size:1.05rem;padding:15px 30px;border-radius:11px;border:none;
+        background:var(--led);color:#08221A;min-height:52px}
+  .prim:hover{background:#8AECC1}
+  .prim.stop{background:var(--amber);color:#2A1B06}
+  .prim.stop:hover{background:#EEBC7C}
+  .klok .neven{border-color:var(--panel-line);background:transparent;color:var(--panel-muted)}
+  .klok .neven:hover{background:var(--panel-2);color:var(--panel-text)}
+  .klok .neven[aria-pressed="true"]{border-color:var(--amber);color:var(--amber)}
+  .blokjes{display:flex;flex-wrap:wrap;gap:6px}
+  .blokje{font-family:var(--f-mono);font-size:.82rem;background:var(--panel-2);border:1px solid var(--panel-line);
+          border-radius:7px;padding:3px 9px;color:var(--panel-text)}
+  .blokje.open{border-color:var(--led);color:var(--led)}
+  .klok-leeg{font-size:.88rem;color:var(--panel-muted)}
+
+  .stand{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px 18px;
+         display:flex;flex-direction:column}
+  .stand h2{font-family:var(--f-display);font-size:.7rem;font-weight:600;letter-spacing:.14em;
+            text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+  .srij{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:7px 0;
+        border-bottom:1px solid var(--line)}
+  .srij:last-of-type{border-bottom:none}
+  .srij .lab{font-size:.93rem;color:var(--muted)}
+  .srij .val{font-family:var(--f-mono);font-weight:500;font-size:1.02rem;font-variant-numeric:tabular-nums}
+  .pos{color:var(--accent-text)} .negatief{color:var(--neg)}
+  .stand-voet{margin:10px 0 0;padding-top:10px;border-top:1px solid var(--line);font-size:.82rem;color:var(--muted)}
+
+  .blad{background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+  .bladkop{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;
+           border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .bladkop h2{font-family:var(--f-display);font-size:1.05rem;font-weight:600;margin:0;letter-spacing:-.01em}
+  .nav{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .segment{display:inline-flex;border:1px solid var(--line-strong);border-radius:9px;overflow:hidden}
+  .segment button{border:none;border-radius:0;background:transparent;color:var(--muted);padding:8px 14px;min-height:38px}
+  .segment button+button{border-left:1px solid var(--line-strong)}
+  .segment button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent-text);font-weight:600}
+  .tabelwrap{overflow-x:auto}
+  table{border-collapse:collapse;width:100%;min-width:600px;font-size:.93rem}
+  th{font-family:var(--f-display);font-size:.68rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+     color:var(--muted);text-align:left;padding:9px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
+  td{padding:9px 14px;border-bottom:1px solid var(--line);vertical-align:middle}
+  th.num,td.num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+  tr.dag{cursor:pointer}
+  tr.dag:hover td{background:var(--surface-2)}
+  tr.weekend td{color:var(--muted)}
+  tr.vandaag td{background:var(--accent-soft)}
+  tr.vandaag:hover td{background:var(--accent-soft)}
+  td.datum{white-space:nowrap;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+  td.datum .dagnaam{font-family:var(--f-body);color:var(--muted);margin-left:7px;font-size:.86rem}
+  td.tijden{font-family:var(--f-mono);font-size:.85rem;color:var(--muted);white-space:nowrap}
+  tr.wsom td{background:var(--surface-3);font-size:.78rem;color:var(--muted);font-family:var(--f-display);
+             letter-spacing:.06em;text-transform:uppercase;font-weight:600;padding:7px 14px}
+  tr.wsom td.num{font-family:var(--f-mono);letter-spacing:0;text-transform:none;font-size:.9rem;color:var(--text)}
+  .chip{display:inline-block;font-size:.76rem;font-weight:600;padding:2px 9px;border-radius:99px;white-space:nowrap;
+        font-family:var(--f-display)}
+  .c-gewerkt{background:var(--accent-soft);color:var(--accent-text)}
+  .c-verlof{background:var(--info-soft);color:var(--info)}
+  .c-ziekte{background:var(--warn-soft);color:var(--warn)}
+  .c-vov{background:var(--violet-soft);color:var(--violet)}
+  .c-recup{background:var(--neg-soft);color:var(--neg)}
+  .c-feestdag{background:var(--surface-3);color:var(--muted)}
+  .bladvoet{margin:0;padding:11px 16px;border-top:1px solid var(--line);background:var(--surface-2);
+            font-size:.83rem;color:var(--muted);max-width:70ch}
+
+  .jaar{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px 18px}
+  .jaarkop{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+  .jaarkop h2{font-family:var(--f-display);font-size:1.05rem;font-weight:600;margin:0}
+  .jaarkop .saldo{font-family:var(--f-mono);font-size:1.05rem;font-variant-numeric:tabular-nums}
+  .tellers{display:grid;grid-template-columns:repeat(auto-fit,minmax(124px,1fr));gap:9px}
+  .teller{background:var(--surface-2);border:1px solid var(--line);border-radius:11px;padding:11px 13px;
+          display:flex;flex-direction:column;gap:2px}
+  .teller .t-val{font-family:var(--f-mono);font-size:1.32rem;font-weight:500;font-variant-numeric:tabular-nums;
+                 line-height:1.1}
+  .teller .t-lab{font-size:.79rem;color:var(--muted)}
+
+  .overlay{position:fixed;inset:0;background:rgba(8,14,12,.55);display:flex;align-items:center;justify-content:center;
+           padding:14px;z-index:50}
+  .kaart{background:var(--surface);border:1px solid var(--line);border-radius:16px;width:min(520px,100%);
+         max-height:92vh;overflow:auto;padding:18px 20px;display:flex;flex-direction:column;gap:13px}
+  .kaart h3{font-family:var(--f-display);font-size:1.12rem;margin:0;font-weight:600}
+  .veld{display:flex;flex-direction:column;gap:5px}
+  .veld label{font-family:var(--f-display);font-size:.68rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+              color:var(--muted)}
+  input,select,textarea{font:inherit;color:var(--text);background:var(--surface-2);border:1px solid var(--line-strong);
+                        border-radius:8px;padding:9px 10px;width:100%;min-height:42px}
+  input[type="time"],input[type="number"]{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+  .snel{display:flex;flex-wrap:wrap;gap:7px}
+  .snel button{padding:7px 12px;min-height:38px;font-size:.9rem}
+  .blokrij{display:flex;gap:7px;align-items:center}
+  .blokrij span{color:var(--muted)}
+  .blokrij button{padding:6px 11px;min-height:42px;flex:none}
+  .duo{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media (max-width:520px){.duo{grid-template-columns:1fr}}
+  .kaartvoet{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+  .gevaar{color:var(--neg);border-color:transparent;background:transparent}
+  .gevaar:hover{background:var(--neg-soft)}
+  .opslaan{background:var(--accent);color:#fff;border-color:transparent;font-weight:600}
+  .opslaan:hover{background:var(--accent);filter:brightness(1.1)}
+  .hint{font-size:.84rem;color:var(--muted);margin:0}
+  .foutlijn{font-size:.87rem;color:var(--neg);margin:0}
+  .goedlijn{font-size:.87rem;color:var(--accent-text);margin:0}
+  code{font-family:var(--f-mono);font-size:.86em;background:var(--surface-3);padding:1px 5px;border-radius:5px}
+
+  .melding{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom));
+           background:var(--panel);color:var(--panel-text);padding:10px 18px;border-radius:10px;font-size:.9rem;
+           z-index:60;border:1px solid var(--panel-line)}
+
+  @media (max-width:640px){
+    .wrap{padding-left:calc(12px + env(safe-area-inset-left));padding-right:calc(12px + env(safe-area-inset-right));
+          padding-top:calc(14px + env(safe-area-inset-top));gap:14px}
+    .merk h1{font-size:1.35rem}
+    .klok{padding:17px 16px}
+    .prim{flex:1 1 100%;text-align:center}
+    .klok .neven{flex:1 1 130px}
+    .stand{padding:14px 15px}
+    table{min-width:0;font-size:.9rem;width:100%}
+    th{letter-spacing:.04em;font-size:.63rem;padding:8px 7px;white-space:normal}
+    td{padding:8px 7px}
+    td.datum{font-size:.85rem}
+    .k-norm,.k-pauze{display:none}
+    td.tijden{font-size:.79rem;white-space:normal}
+    .bladkop{padding:11px 12px;flex-direction:column;align-items:stretch;gap:9px}
+    .bladkop h2{font-size:1rem}
+    .nav{width:100%;flex-wrap:wrap}
+    .segment{flex:1 1 100%}
+    .segment button{flex:1;padding:8px 6px}
+    #btnVorige,#btnVolgende{flex:0 0 56px;padding:8px 0}
+    #btnNu{flex:1 1 auto}
+    .bladvoet{padding:10px 12px}
+    .jaar{padding:14px 15px}
+    .kop-acties{width:100%}
+    .kop-acties button{flex:1}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="kop">
+    <div class="merk">
+      <h1>Tikklok</h1>
+      <p class="synclijn"><span class="syncstip" id="syncStip"></span><span id="syncTekst">Lokaal bewaard</span></p>
+    </div>
+    <div class="kop-acties">
+      <button type="button" id="btnAccount" class="stil">Synchronisatie</button>
+      <button type="button" id="btnInstel" class="stil">Instellingen</button>
+      <button type="button" id="btnExport">Exporteer CSV</button>
+    </div>
+  </header>
+
+  <section class="boven">
+    <div class="klok">
+      <div class="rij1">
+        <span class="eyebrow">Vandaag</span>
+        <span class="datumlabel" id="vandaagDatum"></span>
+      </div>
+      <div>
+        <div class="digits" id="digits">0:00:00</div>
+        <div class="subdigits" id="subdigits"></div>
+      </div>
+      <div class="status"><span class="stip" id="stip"></span><span id="statusTekst">Uitgeklokt</span></div>
+      <div class="blokjes" id="blokjes"></div>
+      <div class="knoprij">
+        <button type="button" class="prim" id="btnKlok">Inklokken</button>
+        <button type="button" class="neven" id="btnPauze" aria-pressed="false">Pauze automatisch</button>
+        <button type="button" class="neven" id="btnVandaag">Dag bewerken</button>
+      </div>
+    </div>
+
+    <div class="stand">
+      <h2>Stand</h2>
+      <div class="srij"><span class="lab">Deze week gepresteerd</span><span class="val" id="wGepresteerd">–</span></div>
+      <div class="srij"><span class="lab">Deze week verwacht</span><span class="val" id="wVerwacht">–</span></div>
+      <div class="srij"><span class="lab">Saldo deze week</span><span class="val" id="wSaldo">–</span></div>
+      <div class="srij"><span class="lab" id="mSaldoLabel">Saldo maand</span><span class="val" id="mSaldo">–</span></div>
+      <p class="stand-voet" id="normNoot"></p>
+    </div>
+  </section>
+
+  <section class="blad">
+    <div class="bladkop">
+      <h2 id="bladTitel">Overzicht</h2>
+      <div class="nav">
+        <div class="segment">
+          <button type="button" id="btnWeek" aria-pressed="false">Week</button>
+          <button type="button" id="btnMaand" aria-pressed="true">Maand</button>
+        </div>
+        <button type="button" id="btnVorige" aria-label="Vorige periode">←</button>
+        <button type="button" id="btnNu">Vandaag</button>
+        <button type="button" id="btnVolgende" aria-label="Volgende periode">→</button>
+      </div>
+    </div>
+    <div class="tabelwrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Datum</th><th>Type</th><th>Prestaties</th>
+            <th class="num k-pauze">Pauze</th><th class="num">Netto</th>
+            <th class="num k-norm">Norm</th><th class="num">Saldo</th>
+          </tr>
+        </thead>
+        <tbody id="tabelBody"></tbody>
+      </table>
+    </div>
+    <p class="bladvoet">Tik een dag om tijden, pauze of type aan te passen. Verlof, ziekte en opleidingsverlof vullen de
+      dagnorm aan, weekends en Belgische feestdagen hebben geen norm, recup verrekent tegen je opgebouwd saldo.</p>
+  </section>
+
+  <section class="jaar">
+    <div class="jaarkop">
+      <h2 id="jaarTitel">Dit jaar</h2>
+      <span class="saldo" id="jaarSaldo">–</span>
+    </div>
+    <div class="tellers" id="tellers"></div>
+  </section>
+</div>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="kaart" id="kaart" role="dialog" aria-modal="true" aria-labelledby="kaartTitel">
+    <h3 id="kaartTitel">Dag</h3>
+    <div id="kaartInhoud"></div>
+  </div>
+</div>
+
+<script src="vendor/supabase.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
